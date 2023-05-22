@@ -1,0 +1,129 @@
+from fastapi import APIRouter, Depends, Security
+from sqlalchemy.orm import Session
+
+from order import OrderService
+from order.api.v1.managers.fund import debt_detail_RM, repay_RM, get_collateral_RM
+from system.dbs.postgre import get_db
+from user.interfaces.user import UserInterface
+
+router = APIRouter()
+
+
+debt_detail_RM = ResponseManager(
+    request_model=None,
+    response_model=DebtDetailResponse,
+    pagination=False,
+    is_mock=False
+)
+
+repay_RM = ResponseManager(
+    request_model=RepayRequest,
+    response_model=RepayResponse,
+    pagination=False,
+    is_mock=False
+)
+
+
+get_collateral_RM = ResponseManager(
+    request_model=None,
+    response_model=GetCollateralResponse,
+    pagination=False,
+    is_mock=False
+)
+
+
+@router.get(
+    "/debt-detail",
+    response_description="get user total debt detail",
+    response_model=debt_detail_RM.response_model()
+)
+async def debt_detail(
+        db: Session = Depends(get_db),
+        current_user_id: str = Security(UserInterface.get_current_user, scopes=["fund:DebtDetail"])
+):
+    try:
+        order_sr = OrderService()
+
+        debt_detail_RM.status_code(200)
+        return debt_detail_RM.response(
+            order_sr.fund.get_all_fund_detail_to_repay(
+                db=db,
+                user_id=int(current_user_id))
+        )
+
+    except Exception as e:
+        return debt_detail_RM.exception(e)
+
+
+@router.post(
+    "/repay",
+    response_description="get user total debt detail",
+    response_model=repay_RM.response_model(),
+)
+async def repay(
+        request_model: repay_RM.request_model(),
+        db: Session = Depends(get_db),
+        current_user_id: str = Security(UserInterface.get_current_user, scopes=["fund:Repay"])
+):
+    try:
+        from order import OrderService
+
+        pay_order_sr = OrderService()
+
+        response_dict = pay_order_sr.fund.repay(
+            list_of_fund_id=request_model.fund_ids,
+            db=db,
+            user_id=current_user_id
+        )
+
+        repay_RM.status_code(200)
+        return repay_RM.response(response_dict)
+
+    except Exception as e:
+        db.rollback()
+        return repay_RM.exception(e)
+
+
+@router.get(
+    '/collateral',
+    response_model=get_collateral_RM.response_model(),
+    response_description='Get collateral of an order'
+)
+async def get_collateral(
+        uuid: str,
+        db: Session = Depends(get_db),
+        current_user_id: str = Security(UserInterface.get_current_user),
+        # current_user_id: str = Security(AuthInterface.get_current_user, scopes=["fund:get-collateral"]),
+
+):
+    try:
+        from .pay import OrderService
+
+        order_sr = OrderService()
+
+        pay_order = order_sr.pay.check_order_validity(db=db, uuid=uuid)
+        fund = order_sr.fund.find_item_multi(db=db, order_id=pay_order.id)[0]
+
+        # response vars
+        is_estimate = True
+
+        assets_detail_list = order_sr.fund.get_collateral(db=db, fund=fund)
+        collateral_satisfy_percentage = order_sr.fund.get_satisfy_percentage(
+            asset_list=assets_detail_list,
+            used_free_credit=fund.used_free_credit,
+            order_amount=pay_order.amount
+        )
+
+        if fund.collateral_confirmed:
+            is_estimate = False
+
+        response = {
+            'assets': assets_detail_list,
+            'is_estimate': is_estimate,
+            'collateral_satisfy_percentage': collateral_satisfy_percentage,
+            'need_wallex': fund.need_wallex_asset
+        }
+
+        return get_collateral_RM.response(response)
+    except Exception as e:
+        return get_collateral_RM.exception(e)

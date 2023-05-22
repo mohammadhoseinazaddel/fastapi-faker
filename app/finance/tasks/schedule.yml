@@ -1,0 +1,5 @@
+merchant-settlement-every-day:
+  task: "finance.tasks.merchants_settlement"
+  schedule:
+    hour: 0
+    minute: 0

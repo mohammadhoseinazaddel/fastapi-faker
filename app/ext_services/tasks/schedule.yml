@@ -1,0 +1,19 @@
+update-jibit_identity_validation:
+  task: "ext_services.tasks.jibit_identity_validation_refresh_token"
+  schedule: 79200 # 60 * 60 * 22
+
+update-jibit_payment_gateway:
+  task: "ext_services.tasks.jibit_payment_gateway_refresh_token"
+  schedule: 79200 # 60 * 60 * 22
+
+update-jibit_transferor_refresh_token:
+  task: "ext_services.tasks.jibit_transferor_refresh_token"
+  schedule: 79200 # 60 * 60 * 22
+
+update-sms_ir_token:
+  task: "ext_services.tasks.sms_ir_token"
+  schedule: 600 # 60 * 10
+
+update-finnotech_token:
+  task: "ext_services.tasks.finnotech_token"
+  schedule: 777600 # 60 * 60 * 24 * 9

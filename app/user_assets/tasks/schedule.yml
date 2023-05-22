@@ -1,0 +1,3 @@
+manage_income_deposit:
+  task: "user_assests.tasks.manage_income_deposit"
+  schedule: 50

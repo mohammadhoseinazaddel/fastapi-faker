@@ -1,0 +1,145 @@
+import datetime
+
+from pydantic import BaseModel, Field, validator
+
+
+class DebtDetailResponse(BaseModel):
+    id: int = \
+        Field(...,
+              title='fund-id',
+              description='id of fund',
+              example=10,
+              )
+
+    order_price: int = \
+        Field(...,
+              title='order-price',
+              description='price of order',
+              example=1500000,
+              )
+
+    title: str = \
+        Field(...,
+              title='order-title',
+              description='title of order',
+              example='یخچال',
+              )
+
+    order_type: str = \
+        Field(...,
+              title='order-type',
+              description='type of order',
+              example='POST_PAY',
+              )
+
+    total_remain_debt: int = \
+        Field(...,
+              title='total-remain-debt',
+              description='total remain debt',
+              example=2000000,
+              )
+
+    to_pay: int = \
+        Field(...,
+              title='to-pay-amount',
+              description='amount to pay, if is not 0 it meant user can pay',
+              example=500000,
+              )
+
+    settle_time: datetime.datetime = \
+        Field(...,
+              title='settle_time',
+              description='settle time of order',
+              example='',
+              )
+
+    merchant_name_fa: str = \
+        Field(...,
+              title='persian name of merchant',
+              description='persian name of merchant',
+              example='علی بابا',
+              )
+
+    merchant_logo_address: str = \
+        Field(...,
+              title='to-pay-amount',
+              description='amount to pay, if is not 0 it meant user can pay',
+              example=500000,
+              )
+
+    merchant_logo_background_color: str = \
+        Field(...,
+              title='to-pay-amount',
+              description='amount to pay, if is not 0 it meant user can pay',
+              example=500000,
+              )
+
+    @validator('order_price')
+    def convert_rial_to_tmn(cls, value):
+        return value / 10
+
+
+class RepayRequest(BaseModel):
+    fund_ids: list = \
+        Field(...,
+              title='list of ids to repay',
+              description='ids list to repay',
+              example=[1, 10],
+              )
+
+
+class RepayResponse(BaseModel):
+    redirect_url: str = \
+        Field(...,
+              title='payment-redirect-url',
+              description='redirect url of payment',
+              example='',
+              )
+    total_amount: int = \
+        Field(...,
+              title='total pay amount in tmn',
+              description='total pay amount in tmn',
+              example='',
+              )
+
+    @validator('total_amount')
+    def convert_rial_to_tmn(cls, v):
+        return v / 10
+
+
+class GetCollateralRequest(BaseModel):
+    uuid: str = \
+        Field(
+            min_length=16,
+            max_length=16,
+            title='identifier',
+            description='identifier of order',
+            example="tr54gdvcbnjkj2wq"
+        )
+
+
+class GetCollateralResponse(BaseModel):
+    assets: list = \
+        Field(
+            title='asset-list',
+            description='user assets list with blocked estimate',
+            example=[]
+        )
+    is_estimate: bool = \
+        Field(
+            title='is estimate',
+            description='is this real blocked asset or just estimation',
+            example=True
+        )
+    collateral_satisfy_percentage: float = \
+        Field(
+            title='collateral satisfy percentage',
+            description='',
+            example=99
+        )
+    need_wallex: bool = \
+        Field(
+            title='need wallex',
+            description='need wallex confirm or not',
+            example=True
+        )

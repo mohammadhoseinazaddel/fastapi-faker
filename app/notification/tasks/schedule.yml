@@ -1,0 +1,19 @@
+send-sms:
+  task: "notification.tasks.send_sms"
+  schedule: 0.5
+
+inquiry-sms:
+  task: "notification.tasks.inquiry_sms"
+  schedule: 1.5
+
+retry-sms:
+  task: "notification.tasks.retry_sms"
+  schedule: 1.5
+
+send-push-notification:
+  task: "notification.tasks.send_push_notification"
+  schedule: 0.5
+
+retry-push-notification:
+  task: "notification.tasks.retry_push_notification"
+  schedule: 1.5

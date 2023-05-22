@@ -1,0 +1,136 @@
+version: '3.7'
+
+x-env: &env
+  env_file:
+    - .env
+
+x-app: &app
+  image: wallpay-services:0.0.21
+  volumes:
+    - ./app:/wallpay/app
+
+
+services:
+
+  postgres:
+    container_name: postgres
+    image: postgres:12.0-alpine
+    <<: *env
+    networks:
+      - postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    restart: "no"
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      TZ: Asia/Tehran
+      PGADMIN_DEFAULT_EMAIL: admin@wallpay.wallex
+      PGADMIN_DEFAULT_PASSWORD: "1234"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "127.0.0.1:8080:80"
+    networks:
+      - postgres
+
+  redis:
+    container_name: redis
+    image: redis:6.0.6
+    <<: *env
+    networks:
+      - redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: "no"
+
+  celery:
+    container_name: celery
+    <<: [*app, *env]
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - postgres
+      - redis
+      - celery
+    entrypoint: ./scripts/worker-start.sh
+    restart: "no"
+
+  celery_beat:
+    container_name: celery_beat
+    <<: [*app, *env]
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - celery
+    networks:
+      - postgres
+      - redis
+      - celery
+    entrypoint: ./scripts/beat-start.sh
+    restart: "no"
+
+  flower:
+    container_name: flower
+    <<: [*app, *env]
+    depends_on:
+      - postgres
+      - redis
+      - celery
+    networks:
+      - postgres
+      - redis
+      - celery
+    ports:
+      - "127.0.0.1:5555:5555"
+    entrypoint: ./scripts/flower-start.sh
+    restart: "no"
+
+  wallpay:
+    container_name: wallpay
+    <<: [*app, *env]
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - celery
+    networks:
+      - wallpay
+      - postgres
+      - redis
+      - celery
+    ports:
+      - "8001:8000"
+    restart: "no"
+
+
+networks:
+  postgres:
+    external: false
+  redis:
+    external: false
+  celery:
+    external: false
+  wallpay:
+    external: false
+
+volumes:
+  postgres:
+    external: false
+  pgadmin:
+    external: false
